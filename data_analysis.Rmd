@@ -7,24 +7,107 @@ output: pdf_document
 
 ```{r}
 library(tidyverse)
+df <- mpg
+df$class <- factor(df$class)
+df$displ_yeni <- ifelse(df$displ > 2, 1, 0)
+df$displ_yeni <- factor(df$displ_yeni)
+glimpse(df)
+colnames(df)
+nrow(df)
+ncol(df)
+head(df)
+str(df)
+glimpse(df)
+psych::headTail(df)
+summary(df)
+fivenum(df$displ)
+levels(df$class)
+
 ```
 
-## R Markdown
+```{r}
+library(funModeling)
+profiling_num(df)
+plot_num(df)
+freq(df)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+
+
+
 ```
 
-## Including Plots
+```{r}
+library(psych)
+describe(mpg$displ)
+library(Hmisc)
+Hmisc::describe(mpg$displ)
+library(pastecs)
+stat.desc((mpg))
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+df <- select(mpg, trans, cty, cyl, hwy)
+describe.by(df,df$trans)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+library(d3Tree)
+d3tree(list(root = df2tree(rootname = 'mpg',
+            struct = as.data.frame(mpg)),
+            layout = 'collapse'))
+
+d3tree(list(root = df2tree(rootname = 'Titanic',
+            struct = as.data.frame(Titanic)),
+            layout = 'collapse'))
+
+
+library(xplorerr)
+app_descriptive()
+
+
+```
+
+```{r}
+# kategorik değişkenler de bar plot kullanılır
+df <- diamonds
+glimpse(df)
+
+ggplot(df, aes(cut)) +
+    geom_bar()
+
+ggplot(df, aes(cut, fill = color)) +
+    geom_bar(position = position_dodge()) +
+    ggtitle('Cut an color') +
+    xlab('Kesim') +
+    ylab('Adet')
+
+```
+
+```{r}
+ggplot(df, aes(price)) +
+    geom_histogram(binwidth = 1000)
+
+ggplot(df, aes(price)) +
+    geom_density()
+
+ggplot(df, aes(price)) +
+    geom_histogram(aes(y = ..density..)) +
+    geom_density(alpha = .3, fill = 'orange')
+
+ggplot(df, aes(price, fill = cut)) +
+    geom_histogram()
+
+ggplot(df, aes(price)) +
+    geom_histogram() +
+    facet_grid(cut ~.)
+```
+
+```{r}
+library(ggridges)
+ggplot(df, aes(x = price, y = cut, fill = cut)) +
+    geom_density_ridges() +
+    theme_ridges() + 
+    theme(legend.position = 'none')
+```
+
