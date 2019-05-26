@@ -219,3 +219,99 @@ ggpairs(df)
 
 ```
 
+```{r}
+df <- economics
+ggplot(df, aes(date, pop)) +
+    geom_line(color = 'green', size = 1)
+
+ggplot(df, aes(date, pop)) +
+    geom_line(aes(size = uempmed / pop))
+
+ggplot(df, aes(date, psavert)) +
+    geom_line() +
+    stat_smooth()
+
+
+
+
+
+
+```
+```{r}
+veri <- data.frame(
+    id = seq(1,60),
+    ogrenciler = paste('Ogrenci', seq(60), sep = '_'),
+    notlar = sample(seq(10, 100), 60, replace = T)
+)
+
+ggplot(veri, aes(x = factor(id), y = notlar)) +
+    geom_bar(stat = 'identity') +
+    ylim(-100, 120) +
+    theme_minimal() +
+    theme(
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank(),
+        plot.margin = unit(rep(-2, 4), 'cm')
+    ) +
+    coord_polar(start = 0)
+
+
+
+
+
+```
+
+```{r}
+library(treemap)
+
+df <- data.frame(
+  gruplar = c("grup_1", "grup_2","grup_3"),
+  degerler = c(10, 90, 60)
+  
+)
+ 
+df
+
+treemap(df, index = "gruplar", vSize = "degerler", type ="index")
+
+```
+
+```{r}
+
+
+df<- diamonds
+df <- select(diamonds, cut, color, price)
+
+df <- data.frame(
+  gruplar = c(rep("grup_1", 4),
+               rep("grup_2", 2),
+               rep("grup_3", 3)),
+  
+  alt_gruplar = paste("alt_grup", c(1,2,3,4,1,2,1,2,3), sep = "_"),
+  
+  degerler = c(13,5,22,12,11,4,2,5,6)
+  
+)
+
+df
+
+treemap(df, index = c("cut","color"), 
+        vSize = "price", 
+        type ="index",
+        fontsize.labels = c(20,13),
+        fontcolor.labels = c("white","black"),
+        bg.labels = c("transparent"),
+        align.labels = list(
+          c("center", "center"),
+          c("right","bottom")
+          
+        ),
+        border.col = c("black","white"),
+        border.lwds = c(5,2)
+        
+        
+        
+        )
+
+```
