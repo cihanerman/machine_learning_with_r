@@ -98,6 +98,33 @@ shapiro.test(AB[AB$sinif == "B",]$degerler)
 library(car)
 LeveneTest(AB$degerler ~ AB$sinif, center = mean)
 ```
+```{r}
+t.test(AB$degerler~AB$sinif)
+```
+```{r}
+df <- mtcars
+cor(df)
+library(ggpubr)
+ggscatter(df, x = "mpg", y = "wt", 
+          add = "reg.line",
+          conf.int = T,
+          cor.coef = T,
+          cor.method = "pearson")
+
+shapiro.test(df$mpg)
+shapiro.test(df$wt)
+cor.test(df$wt, df$mpg, method = "pearson")
+cor.test(df$wt, df$mpg, method = "spearman")
+cor(df, use = "complete.obs")
+
+library(Hmisc)
+rcorr(as.matrix(df))
+```
+```{r}
+library(PerformanceAnalytics)
+df <- mtcars[,c(1,3,4,5,6,7)]
+chart.Correlation(df, histogram = T, pch = 19)
+```
 
 
 
