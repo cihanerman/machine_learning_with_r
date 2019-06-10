@@ -1,0 +1,312 @@
+---
+title: "machine_learning"
+author: "Cihan ERMAN"
+date: "6/5/2019"
+output: html_document
+---
+## Simple linear regression
+```{r}
+#Classification And REgression Training
+library(caret)
+library(tidyverse)
+library(AppliedPredictiveModeling)
+library(pls) #kismi en kucuk kareler ve pcr icin
+library(elasticnet)
+library(broom) #tidy model icin
+library(glmnet)
+library(MASS)
+library(ISLR)
+library(PerformanceAnalytics)
+library(funModeling)
+library(Matrix)
+```
+
+```{r}
+df <- Advertising
+```
+```{r}
+glimpse(df)
+str(df)
+summary(df)
+profiling_num(df)
+sum(is.na(df))
+```
+```{r}
+plot(sales ~ TV , data = df, pch = 20, cex = 1.5)
+```
+
+```{r}
+pairs(df)
+```
+```{r}
+chart.Correlation(df, histogram = T, pch = 19)
+```
+```{r}
+featurePlot(x = df[, c("TV","radio","newspaper")], y = df$sales)
+```
+
+```{r}
+l_model <- lm(sales ~ ., data = df)
+summary(l_model)
+```
+```{r}
+lm_model <- lm(sales ~ TV + radio, data = df)
+summary(lm_model)
+```
+```{r}
+yeni_gozlem <- data.frame(
+  TV = 120, radio = 50
+)
+
+predict(lm_model)
+predict(lm_model, yeni_gozlem)
+predict(lm_model, yeni_gozlem, interval = "confidence")
+predict(lm_model, yeni_gozlem, interval = "confidence", level = 0.80)
+```
+```{r}
+head(resid(lm_model), 10)
+head(rstudent(lm_model), 10)
+head(df$sales, 10)
+head(predict(lm_model), 10)
+
+kar <- data.frame(
+  y = head(df$sales, 10),
+  ysapka = head(predict(lm_model),10)
+  
+)
+kar$hata <- kar$y - kar$ysapka
+kar$kare <- kar$hata ^ 2
+sqrt(mean(kar$kare))
+mean(kar$kare[-6])
+```
+## Multiple Linear Regression
+```{r}
+df <- Hitters
+df <- na.omit(df)
+glimpse(df)
+rownames(df) <- c()
+```
+```{r}
+set.seed(3456)
+train_index <- createDataPartition(df$Salary,
+                                   p = .8,
+                                   list = F,
+                                   times = 1)
+
+train <- df[train_index,]
+test <- df[-train_index,]
+
+train_x <- train %>% dplyr::select(-Salary)
+train_y <- train$Salary
+
+test_x <- test %>% dplyr::select(-Salary)
+test_y <- test$Salary
+
+training <- data.frame(train_x, Salary = train_y)
+```
+```{r}
+glimpse(training)
+plot_num(training)
+summary(training)
+```
+```{r}
+pairs(df %>% dplyr::select(-c("League","NewLeague","Division")))
+chart.Correlation(df %>% dplyr::select(-c("League","NewLeague","Division")), histogram=TRUE, pch=19)
+```
+
+```{r}
+lm_fit <- lm(Salary ~ ., data = training)
+summary(lm_fit)
+names(lm_fit)
+```
+```{r}
+head(training$Salary)
+head(lm_fit$fitted.values)
+
+d <- data.frame(
+    obs = training$Salary,
+    pred = lm_fit$fitted.values
+)
+
+defaultSummary(d)
+```
+```{r}
+head(predict(lm_fit, train_x))
+head(lm_fit$fitted.values)
+
+d <- data.frame(
+    obs = test_y,
+    pred = predict(lm_fit, test_x)
+)
+defaultSummary(d)
+```
+```{r}
+ctrl <- trainControl(method = "cv",
+                     number = 10)
+
+lm_val_fit <- train(x = train_x,
+      y = train_y,
+      method = "lm",
+      trControl = ctrl)
+
+lm_val_fit
+
+summary(lm_val_fit)
+```
+## PCR
+```{r}
+pcr_fit <- pcr(Salary~.,
+    data = training,
+    scale = T,
+    validation = "CV")
+
+summary(pcr_fit)
+validationplot(pcr_fit, val.type = "MSEP")
+names(pcr_fit)
+defaultSummary(data.frame(
+  obs = training$Salary,
+  pred = as.vector(pcr_fit$fitted.values)
+))
+```
+```{r}
+predict(pcr_fit, test_x[1:5,], ncomp = 1:2)
+defaultSummary(data.frame(
+  obs = test_y,
+  pred = as.vector(predict(pcr_fit, test_x, ncomp = 1:2))
+))
+```
+```{r}
+ctrl <- trainControl(method = "cv", number = 10)
+set.seed(100)
+pcr_tune <- train(train_x, 
+                  train_y,
+                  method = "pcr",
+                  trControl = ctrl,
+                  preProc = c("center","scale"))
+
+pcr_tune <- train(train_x, 
+                  train_y,
+                  method = "pcr",
+                  tuneLength = 20,
+                  trControl = ctrl,
+                  preProc = c("center","scale"))
+
+plot(pcr_tune)
+pcr_tune$finalModel
+```
+```{r}
+defaultSummary(data.frame(
+  obs = test_y,
+  pred = as.vector(predict(pcr_tune, test_x))
+))
+```
+## PLS
+```{r}
+pls_fit <- plsr(Salary~., data = training)
+summary(pls_fit)
+validationplot(pls_fit, val.type = "MSEP")
+names(pls_fit)
+```
+```{r}
+predict(pls_fit, test_x[1:10,], ncomp = 1:2)
+defaultSummary(data.frame(
+  obs = test_y,
+  pred = as.vector(predict(pls_fit, test_x))
+))
+```
+```{r}
+ctrl <- trainControl(method = "cv", number = 10)
+set.seed(100)
+pls_tune <- train(train_x, 
+                  train_y,
+                  method = "pls",
+                  tuneLength = 20,
+                  trControl = ctrl,
+                  preProc = c("center","scale"))
+
+plot(pls_tune)
+pls_tune$finalModel
+```
+## Ridge Regression
+```{r}
+train_x_x <- train_x %>% dplyr::select(-c("League","NewLeague","Division"))
+ridge_fit <- glmnet(as.matrix(train_x_x),
+                    y = train_y,
+                    alpha = 0)
+
+summary(ridge_fit)
+names(ridge_fit)
+plot(ridge_fit, xvar = "lambda", label = T)
+min(log(ridge_fit$lambda))
+```
+
+```{r}
+ridge_cv_fit <- cv.glmnet(as.matrix(train_x_x),
+                    y = train_y,
+                    alpha = 0)
+
+plot(ridge_cv_fit)
+ridge_cv_fit$lambda.min
+ridge_cv_fit$lambda.1se
+coef(ridge_cv_fit, "lambda.min")
+tidy(ridge_cv_fit)
+```
+```{r}
+test_x_x <- test_x %>% dplyr::select(-c("League","NewLeague","Division"))
+defaultSummary(data.frame(
+  obs = test_y,
+  pred = as.vector(predict(ridge_cv_fit, as.matrix(test_x_x)))
+))
+```
+```{r}
+ctrl <- trainControl(method = "cv", number = 10)
+set.seed(100)
+ridge_grid <- data.frame(
+  lambda = seq(0, 5000, length = 100)
+)
+ridge_tune <- train(train_x_x, 
+                  train_y,
+                  method = "ridge",
+                  trControl = ctrl,
+                  tuneGrid = ridge_grid,
+                  preProc = c("center","scale"))
+
+plot(ridge_tune)
+ridge_tune$finalModel
+ridge_tune$results %>% filter(lambda == as.numeric(ridge_tune$bestTune))
+defaultSummary(data.frame(
+  obs = test_y,
+  pred = as.vector(predict(ridge_tune, as.matrix(test_x_x)))
+))
+```
+# Lasso Regression
+```{r}
+train_x_x <- train_x %>% dplyr::select(-c("League","NewLeague","Division"))
+lasso_fit <- glmnet(as.matrix(train_x_x),
+                    y = train_y,
+                    alpha = 1)
+
+plot(lasso_fit, xvar = "lambda", label = T)
+tidy(lasso_fit)
+```
+```{r}
+lasso_cv_fit <- cv.glmnet(as.matrix(train_x_x),
+                    y = train_y,
+                    alpha = 1)
+
+plot(lasso_cv_fit)
+lasso_cv_fit$lambda.min
+lasso_cv_fit$lambda.1se
+coef(lasso_cv_fit, "lambda.min")
+tidy(lasso_cv_fit)
+glance(lasso_cv_fit)
+```
+```{r}
+test_x_x <- test_x %>% dplyr::select(-c("League","NewLeague","Division"))
+defaultSummary(data.frame(
+  obs = test_y,
+  pred = as.vector(predict(lasso_cv_fit, as.matrix(test_x_x)))
+))
+
+```
+

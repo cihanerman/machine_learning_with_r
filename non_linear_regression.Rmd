@@ -1,0 +1,309 @@
+---
+title: "non_linear_regression"
+author: "Cihan ERMAN"
+date: "6/7/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+## Kutuphaneler
+```{r}
+#Classification And REgression Training
+library(caret)
+library(tidyverse)
+library(AppliedPredictiveModeling)
+library(pls) #kismi en kucuk kareler ve pcr icin
+library(elasticnet)
+library(broom) #tidy model icin
+library(glmnet)
+library(MASS)
+library(ISLR)
+library(PerformanceAnalytics)
+library(funModeling)
+library(Matrix) 
+library(kernlab) #svm
+library(e1071) #svm icin
+library(rpart) #cart icin
+library(pgmm) #olive data seti icin 
+library(dslabs)
+library(rpart.plot) #rpart gorsel icin
+library(partykit) #karar agaci gorseli icin 
+library(ipred) #bagging icin 
+library(randomForest)
+library(gbm)
+library(nnet)
+library(neuralnet)
+library(GGally)
+library(NeuralNetTools) #garson fonksiyonu icin
+library(FNN)
+```
+
+## Veri Seti
+```{r}
+df <- Hitters
+
+df <- na.omit(df)
+df <- df %>% dplyr::select(-c("League","NewLeague","Division"))
+
+rownames(df) <- c()
+
+set.seed(3456)
+train_indeks <- createDataPartition(df$Salary, 
+                                    p = .8, 
+                                    list = FALSE, 
+                                    times = 1)
+head(train_indeks)
+
+train <- df[train_indeks, ]
+test <- df[-train_indeks, ]
+train_x <- train %>% dplyr::select(-Salary)
+train_y <- train$Salary
+test_x <- test %>% dplyr::select(-Salary)
+test_y <- test$Salary
+
+#tek bir veri seti 
+training <- data.frame(train_x, Salary = train_y)
+```
+## KNN
+### Model
+```{r}
+knn_fit <- knn.reg(train = train_x, test = test_x, y = train_y, k = 2)
+names(knn_fit)
+```
+### Tahmin
+```{r}
+defaultSummary(data.frame(
+    obs = test_y,
+    pred = knn_fit$pred
+))
+```
+### Model Tuning
+```{r}
+ctrl <- trainControl(method = "cv", number = 10)
+
+knn_grid <- data.frame(k = 1:20)
+
+knn_tune <- train(train_x, train_y,
+                  method = "knn",
+                  trControl = ctrl,
+                  tuneGrid = knn_grid,
+                  preProc = c("center", "scale"))
+
+
+plot(knn_tune)
+names(knn_tune)
+knn_tune$finalModel
+
+defaultSummary(data.frame(
+    obs = test_y,
+    pred = predict(knn_tune, test_x)
+))
+```
+## SVR
+### Model
+```{r}
+svm_fit <- svm(train_x, train_y)
+names(svm_fit)
+```
+### Tahmin
+```{r}
+defaultSummary(data.frame(
+    obs = test_y,
+    pred = predict(svm_fit, test_x)
+))
+
+```
+### Model Tuning
+```{r}
+ctrl <- trainControl(method = "cv", number = 10)
+
+svm_tune <- train(train_x, train_y,
+                  method = "svmRadial",
+                  trControl = ctrl,
+                  tuneLength = 14,
+                  preProc = c("center", "scale"))
+
+
+plot(svm_tune)
+names(svm_tune)
+svm_tune$finalModel
+
+defaultSummary(data.frame(
+    obs = test_y,
+    pred = predict(svm_tune, test_x)
+))
+
+```
+## Yapay Sinir ağları
+### Veri Seti
+```{r}
+dff <- read_table(file = 'http://archive.ics.uci.edu/ml/machine-learning-databases/00243/yacht_hydrodynamics.data',
+col_names = c('longpos_cob', 
+              'prismatic_coeff', 
+              'len_disp_ratio', 
+              'beam_draut_ratio', 
+              'length_beam_ratio',
+              'froude_num', 
+              'residuary_resist')) 
+
+glimpse(dff)
+summary(dff)
+profiling_num(dff)
+ggpairs(dff)
+```
+
+```{r}
+
+olcek <- function(x) {
+  
+  (x-min(x)) / (max(x) - min(x))
+  
+}
+
+df <- na.omit(dff)
+
+df <- df %>% mutate_all(olcek)
+
+set.seed(3456)
+train_indeks <- createDataPartition(df$residuary_resist, 
+                                  p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+
+
+train <- df[train_indeks,]
+test  <- df[-train_indeks,]
+
+
+train_x <- train %>% dplyr::select(-residuary_resist)
+train_y <- train$residuary_resist
+test_x <- test %>% dplyr::select(-residuary_resist)
+test_y <- test$residuary_resist
+
+
+#tek bir veri seti
+training <- data.frame(train_x, residuary_resist = train_y)
+
+df
+```
+### Model
+#### Bir katman 1 nöron
+```{r}
+#model formulu
+ysa_formul <- residuary_resist ~ longpos_cob + prismatic_coeff + len_disp_ratio + beam_draut_ratio + length_beam_ratio + froude_num
+
+ysa1 <- neuralnet(ysa_formul, data = training)
+plot(ysa1)
+ysa1$result.matrix
+```
+#### n katman n nöron
+```{r}
+plot(neuralnet(ysa_formul,
+               data = training,
+               hidden = c(1,2,3,4)), rep = "best")
+ysa2 <- neuralnet(ysa_formul, data = training, 
+               hidden = 5)
+
+ysa3 <- neuralnet(ysa_formul, data = training, 
+               hidden = c(3,2))
+```
+
+```{r}
+garson(ysa2)
+lekprofile(ysa2)
+```
+
+### Predicti
+```{r}
+dff <- read_table(file = 'http://archive.ics.uci.edu/ml/machine-learning-databases/00243/yacht_hydrodynamics.data',
+col_names = c('longpos_cob', 
+              'prismatic_coeff', 
+              'len_disp_ratio', 
+              'beam_draut_ratio', 
+              'length_beam_ratio',
+              'froude_num', 
+              'residuary_resist')) 
+
+dff <- na.omit(dff)
+set.seed(3456)
+train_indeks <- createDataPartition(dff$residuary_resist, 
+                                  p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+
+
+train <- dff[train_indeks,]
+test  <- dff[-train_indeks,]
+
+
+train_x <- train %>% dplyr::select(-residuary_resist)
+train_y <- train$residuary_resist
+test_x <- test %>% dplyr::select(-residuary_resist)
+test_y <- test$residuary_resist
+
+defaultSummary(data.frame(
+    obs = test_y,
+    pred = predict(ysa1, test_x)
+))
+
+```
+### Model Tuning
+```{r}
+#Multi-Layer Perceptron
+ctrl <- trainControl(method = "cv", number = 10)
+
+ysa_grid <- expand.grid(
+            decay = c(0.001,0.01, 0.1),
+            size =  (1:10))
+
+ysa_tune <- train(train_x, train_y,
+                  method = "mlpWeightDecay",
+                  trControl = ctrl,
+                  tuneGrid = ysa_grid,
+                  preProc = c("center", "scale"))
+
+plot(ysa_tune)
+
+ysa_tune$bestTune
+
+defaultSummary(data.frame(obs = test_y,
+pred = predict(ysa_tune, test_x)))
+
+```
+## Regressi0n Tree
+### Data
+```{r}
+df <- Advertising
+```
+
+### Model
+```{r}
+cart_tree <- rpart(sales~., data = df)
+names(cart_tree)
+cart_tree$variable.importance
+plot(cart_tree, margin = 0.1)
+text(cart_tree, cex = 0.5)
+prp(cart_tree, type = 4)
+rpart.plot(cart_tree)
+plotcp(cart_tree)
+```
+### Predict
+```{r}
+
+```
+### Model Tuning
+```{r}
+
+```
+
+## XGBoost
+### Model
+```{r}
+library(xgboost)
+xgboost_fit <- xgboost(
+  data = as.matrix(train)
+)
+```
+
+
+

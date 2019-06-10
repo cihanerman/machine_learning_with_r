@@ -45,4 +45,108 @@ library(mice)
 md.pattern(df)
 md.pattern(df[, c("Salary", "Hits", "Runs", "RBI")])
 ```
+```{r}
+library(VIM)
+library(ISLR)
+df <- Hitters
+str(df)
+colSums(is.na(df))
+df[sample(1:nrow(df), 7), "Hits"] <- NA
+df[sample(1:nrow(df), 9), "Runs"] <- NA
+df[sample(1:nrow(df), 5), "RBI"] <- NA
+
+aggr_plot <- aggr(df, col=c('navyblue','red'), 
+                  numbers = TRUE, 
+                  sortVars = TRUE, 
+                  labels = names(df), 
+                  cex.axis=.7, 
+                  gap=3, 
+                  ylab=c("Eksik Degerlerin Oransal Gosterimi",
+                         "Eksikligin Veri Seti Icindeki Yapisi"))
+
+
+aggr_plot
+```
+```{r}
+library(BaylorEdPsych)
+library(mvnmle)
+t <- LittleMCAR(df)
+attributes(t)
+
+```
+```{r}
+na.omit(df)
+sapply(df, function(x) sum(is.na(x)))
+sapply(df[!is.na(df$Runs),], function(x) sum(is.na(x)))
+df <- df[!is.na(df$Runs),]
+g <- apply(df, 1, function(x) sum(is.na(x)) / length(x))
+g <- as.vector(g)
+df$eksik_oran <- g
+str(df)
+library(dplyr)
+df %>% filter(df$eksik_oran < 0.01)
+
+library(funModeling)
+df_status(df)
+
+df$Salary <- NULL
+d <- apply(df, 2, function(x) sum(is.na(x)) / length(x))
+d <- as.data.frame(d)
+d$deisken_isimleri <- rownames(d)
+d[d$d > 0.02,]
+```
+
+```{r}
+df <- Hitters
+df[sample(1:nrow(df), 7), "Hits"] <- NA
+df[sample(1:nrow(df), 9), "Runs"] <- NA
+df[sample(1:nrow(df), 5), "RBI"] <- NA
+library(Hmisc)
+df$Hits <- impute(df$Hits, mean)
+summary(df$Hits)
+```
+
+```{r}
+df <- Hitters
+df[sample(1:nrow(df), 7), "Hits"] <- NA
+df[sample(1:nrow(df), 9), "Runs"] <- NA
+df[sample(1:nrow(df), 5), "RBI"] <- NA
+
+library(DMwR) # for knn
+anyNA(df)
+knn_data <- knnImputation(df, k = 5, meth = "median")
+anyNA(knn_data)
+
+library(missForest) # for random forest
+rf_data <- missForest(df, ntree = 7)
+```
+
+H0: Eksik Veriler Tamamen Rasgele Dagilmistir
+H1: Eksik Veriler Rasgele Dagilmamistir
+```{r}
+# ödev
+df <- mtcars
+df[sample(1:nrow(df), 3), "mpg"] <- NA
+df[sample(1:nrow(df), 2), "qsec"] <- NA
+colSums(df)
+df[complete.cases(df),]
+df[!complete.cases(df),]
+t <- LittleMCAR(df)
+t$p.value
+md.pattern(df)
+aggr_plot <- aggr(df, col=c('navyblue','red'), 
+                  numbers = TRUE, 
+                  sortVars = TRUE, 
+                  labels = names(df), 
+                  cex.axis=.7, 
+                  gap=3, 
+                  ylab=c("Eksik Degerlerin Oransal Gosterimi",
+                         "Eksikligin Veri Seti Icindeki Yapisi"))
+
+
+aggr_plot
+```
+```{r}
+
+```
 
