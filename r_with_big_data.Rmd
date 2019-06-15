@@ -1,0 +1,36 @@
+---
+title: "r_wiht_big_data"
+author: "Cihan ERMAN"
+date: "6/14/2019"
+output: html_document
+---
+# Library and data
+```{r}
+library(sparklyr)
+library(tidyverse)
+#spark_install()
+df <- read_csv("train.csv")
+str(df)
+summary(df)
+```
+# Spark connection
+```{r}
+sc <- spark_connect(master = "local")
+titanic_table <- copy_to(sc, df, overwrite = T)
+```
+# Sparrk sql api
+```{r}
+titanic2_tbl <- titanic_table %>% 
+  mutate(Family_Size = SibSp + Parch + 1L) %>% #family size isimli degisken olusturma
+  filter(!is.na(Embarked)) %>% #bu degisken icin eksik gozlemlerin silinmesi
+  mutate(Age = if_else(is.na(Age), mean(Age), Age))  #yas degiskeni yerine ortalam deger
+```
+# Spark ML api
+```{r}
+titanic_final_tbl <- titanic2_tbl %>%
+  mutate(Family_Size = as.numeric(Family_size)) %>% #mutate spark sql den
+  sdf_mutate(
+    Family_Sizes = ft_bucketizer(Family_Size, splits = c(1,2,5,12))
+    ) 
+```
+

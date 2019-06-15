@@ -1,0 +1,13 @@
+----------------------------------------------------------------
+Fri Jun 14 19:53:40 EET 2019:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-016b-56e8-b86f-000006e26ce8 
+on database directory memory:/Users/cihanerman/Documents/GitHub/machine_learning_with_r/databaseName=metastore_db with class loader org.apache.spark.sql.hive.client.IsolatedClientLoader$$anon$1@7ef12632 
+Loaded from file:/Users/cihanerman/spark/spark-2.4.3-bin-hadoop2.7/jars/derby-10.12.1.1.jar
+java.vendor=Oracle Corporation
+java.runtime.version=1.8.0_202-b08
+user.dir=/Users/cihanerman/Documents/GitHub/machine_learning_with_r
+os.name=Mac OS X
+os.arch=x86_64
+os.version=10.14.5
+derby.system.home=null
+Database Class Loader started - derby.database.classpath=''
